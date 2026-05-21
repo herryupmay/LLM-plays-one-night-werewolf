@@ -334,6 +334,104 @@ async def get_game_state(game_id: str) -> dict[str, Any]:
     }
 
 
+
+@app.get("/api/games_completed")
+async def list_games_completed() -> dict[str, Any]:
+    """List games that have finished (have game_log.md). Used by the UI to
+    populate the Replay section on the setup screen."""
+    games_root = WORKSPACE_ROOT / "games"
+    if not games_root.exists():
+        return {"games": []}
+    out: list[dict[str, Any]] = []
+    for d in sorted(games_root.iterdir(), reverse=True):
+        if not d.is_dir() or not d.name.startswith("game_"):
+            continue
+        log = d / "game_log.md"
+        tr = d / "transcript.jsonl"
+        if not log.exists() or not tr.exists():
+            continue
+        out.append({
+            "game_id": d.name,
+            "mtime": log.stat().st_mtime,
+        })
+    return {"games": out}
+
+
+@app.post("/api/replay")
+async def replay_game(payload: dict[str, Any]) -> dict[str, Any]:
+    """Replay a completed game by walking transcript.jsonl and pushing every
+    UI event back through the SSE channel. The frontend receives them exactly
+    as during a live game -- bubbles, streaming deltas, reveals, all of it --
+    but at file-read speed (with a tiny per-event delay so rendering keeps up)."""
+    runner: Optional[GameRunner] = getattr(app.state, "runner", None)
+    if runner is not None and getattr(app.state, "runner_task", None) is not None:
+        task: asyncio.Task = app.state.runner_task
+        if not task.done():
+            raise HTTPException(409, detail="A game is already in progress.")
+
+    game_id = payload.get("game_id")
+    if not isinstance(game_id, str) or not game_id:
+        raise HTTPException(400, detail="game_id required")
+
+    tr_path = WORKSPACE_ROOT / "games" / game_id / "transcript.jsonl"
+    if not tr_path.exists():
+        raise HTTPException(404, detail=f"No transcript for {game_id}")
+
+    speed = float(payload.get("speed", 1.0))  # 1.0 = ~20ms per event
+    base_delay = max(0.001, 0.02 / max(speed, 0.1))
+
+    # Build a minimal replayer that shares the GameRunner's event-queue shape
+    # so the existing /api/stream and /api/state endpoints work unchanged.
+    class _Replayer:
+        def __init__(self, gid: str):
+            self.events: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+            from types import SimpleNamespace
+            self.state = SimpleNamespace(
+                game_id=gid,
+                phase=type("P", (), {"value": "replay"})(),
+                awaiting_gm_advance=False,
+                awaiting_reason=None,
+                card_holder_post_swap={},
+                public_chat=[],
+            )
+
+        async def advance(self) -> None:
+            pass  # no-op during replay
+
+    rep = _Replayer(game_id)
+    app.state.runner = rep
+
+    async def play():
+        await rep.events.put({"type": "announcement",
+                              "text": f"Replaying {game_id}. Events stream below."})
+        with tr_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                # transcript.jsonl uses kind="event" for UI events; unwrap and
+                # push everything else (llm_call, snapshot, error) is skipped.
+                if rec.get("kind") != "event":
+                    continue
+                evt = {k: v for k, v in rec.items() if k not in ("kind", "timestamp")}
+                if "type" not in evt:
+                    continue
+                # Update the lightweight state so the cheat-sheet poll works.
+                if evt.get("type") == "phase_entered":
+                    rep.state.phase = type("P", (), {"value": evt["phase"]})()
+                await rep.events.put(evt)
+                await asyncio.sleep(base_delay)
+        await rep.events.put({"type": "announcement",
+                              "text": f"Replay of {game_id} complete."})
+
+    app.state.runner_task = asyncio.create_task(play(), name=f"replay-{game_id}")
+    return {"game_id": game_id, "mode": "replay", "speed": speed}
+
+
 @app.get("/api/games")
 async def list_games() -> dict[str, Any]:
     """List games on disk that can be resumed (have a state.pickle but no

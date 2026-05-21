@@ -285,6 +285,60 @@ async function loadInitialConfig() {
   }
 }
 
+async function loadCompletedGames() {
+  try {
+    const resp = await fetch("/api/games_completed");
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.games || data.games.length === 0) return;
+
+    const host = document.getElementById("resume-section-host");
+    const section = document.createElement("div");
+    section.className = "setup-card";
+    const h = document.createElement("h2");
+    h.textContent = `Replay a completed game (${data.games.length})`;
+    section.appendChild(h);
+    const sub = document.createElement("p");
+    sub.className = "muted";
+    sub.textContent = "Walks the transcript back through the chat pane at fast pace so you can see every decision and reasoning step.";
+    section.appendChild(sub);
+
+    for (const g of data.games) {
+      const row = document.createElement("div");
+      row.className = "resume-row";
+      row.innerHTML = `
+        <button class="ghost replay-btn" data-game-id="${escapeAttr(g.game_id)}">Replay</button>
+        <span class="resume-id">${escapeHtml(g.game_id)}</span>
+      `;
+      section.appendChild(row);
+    }
+    host.appendChild(section);
+
+    section.querySelectorAll(".replay-btn").forEach(b => {
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        const resp = await fetch("/api/replay", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({game_id: b.dataset.gameId, speed: 1.0}),
+        });
+        if (!resp.ok) {
+          const j = await resp.json().catch(() => ({}));
+          alert(`Replay failed: ${j.detail || resp.statusText}`);
+          b.disabled = false;
+          return;
+        }
+        setupScreen.classList.remove("visible");
+        gameScreen.classList.add("visible");
+        openStream();
+        pollState();
+      });
+    });
+  } catch (e) {
+    console.warn("Could not load completed games:", e);
+  }
+}
+
 async function loadResumableGames() {
   try {
     const resp = await fetch("/api/games");
@@ -616,3 +670,4 @@ function escapeAttr(s) { return escapeHtml(s); }
 
 loadInitialConfig();
 loadResumableGames();
+loadCompletedGames();
