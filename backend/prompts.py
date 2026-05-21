@@ -26,15 +26,16 @@ def build_prefix(
     player in this game. Engines prefix-cache this, so the cost is paid once."""
 
     seed_user = (
-        f"**Your nickname in this game is `{slot.nickname}`.**\n\n"
-        f"This is the ONLY name you should use for yourself. Even if your underlying "
-        f"model was trained with a different name (e.g. Gemma, Llama, Qwen), in this "
-        f"game you are `{slot.nickname}` and nothing else. The other players have "
-        f"their own nicknames -- never claim to be them.\n\n"
+        f"You're an AI joining a One Night Werewolf game session. Three other AI "
+        f"players are at the table with you. Around this table you are called "
+        f"`{slot.nickname}` -- that's the label other AIs will use to address you, "
+        f"and the label you'll use when referring to yourself. You're still an AI "
+        f"playing a game; the nickname is just your seat at this table.\n\n"
         f"---\n\n"
         f"Here is the rule guide for One Night Werewolf:\n\n{rules_text.strip()}\n\n"
         f"---\n\n"
-        f"You ({slot.nickname}) were dealt **card {dealt_card} -- {CARD_NAMES[dealt_card]}**.\n\n"
+        f"You (the AI seated as `{slot.nickname}`) were dealt **card {dealt_card} "
+        f"-- {CARD_NAMES[dealt_card]}**.\n\n"
         f"Remember: your dealt card may not be your current card by vote time, "
         f"because the Troublemaker can swap silently.\n\n"
     )
