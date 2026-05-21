@@ -679,6 +679,18 @@ class GameRunner:
 
         for nick in self.state.slots:
             slot = self.state.slots[nick]
+
+            # Per-player checkpoint: if this player already wrote their afterthought
+            # on a previous attempt (e.g. before the runner timed out on a later
+            # player), skip them on resume. The file on disk is the marker.
+            ap = notes.afterthought_path(self.root, self.game_id, nick)
+            if ap.exists() and ap.read_text(encoding="utf-8").strip():
+                await self._emit({
+                    "type": "announcement",
+                    "text": f"Afterthought already on disk for {nick}; skipping.",
+                })
+                continue
+
             await self._emit({
                 "type": "private_action_started",
                 "nickname": nick, "kind": "afterthought",
@@ -690,7 +702,6 @@ class GameRunner:
                 slot, messages, kind="afterthought", strip_thinking_output=False,
             )
 
-            ap = notes.afterthought_path(self.root, self.game_id, nick)
             ap.parent.mkdir(parents=True, exist_ok=True)
             ap.write_text(result.text, encoding="utf-8")
 
@@ -707,6 +718,15 @@ class GameRunner:
             slot = self.state.slots[nick]
             existing = notes.read_gameskill(self.root, nick)
             section_count = len(re.findall(r"^## Lessons from game_", existing, flags=re.MULTILINE))
+
+            # Per-player checkpoint: if this game's lessons section is already in
+            # the gameskill file, this player already finished on a previous run.
+            if f"## Lessons from {self.game_id}" in existing:
+                await self._emit({
+                    "type": "announcement",
+                    "text": f"Gameskill already updated for {nick} this game; skipping.",
+                })
+                continue
 
             ap = notes.afterthought_path(self.root, self.game_id, nick)
             afterthought_text = ap.read_text(encoding="utf-8") if ap.exists() else ""
