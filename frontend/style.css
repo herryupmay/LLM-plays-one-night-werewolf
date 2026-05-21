@@ -1,0 +1,387 @@
+/* Minimal styling for the runner. Single-pane chat with alignment-by-source
+   and color-by-audience per the spec. */
+
+:root {
+  --bg: #0f1115;
+  --panel: #161a22;
+  --panel-2: #1d2230;
+  --text: #e6e8ee;
+  --muted: #8b94a7;
+  --border: #2a3142;
+
+  /* Audience colors. */
+  --announcement: #f0c674;        /* system broadcast */
+  --announcement-bg: #2a2418;
+  --public: #d1e7ff;              /* player-public broadcast */
+  --public-bg: #15233a;
+  --private: #b9f3c5;             /* per-player private */
+  --private-bg: #16261c;
+
+  --accent: #76b8ff;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "topbar topbar"
+    "main   gm";
+}
+
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.title { font-weight: 600; letter-spacing: 0.2px; }
+.muted { color: var(--muted); }
+.phase-pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+button {
+  background: var(--accent);
+  color: #0b1320;
+  border: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+button.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+button:disabled {
+  background: #2a3142;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+main {
+  grid-area: main;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.screen { display: none; height: 100%; overflow: auto; padding: 24px; }
+.screen.visible { display: block; }
+
+#setup-screen { max-width: 1200px; margin: 0 auto; }
+#setup-screen h1 { margin: 0 0 24px; font-size: 22px; }
+
+.status { font-size: 12px; }
+.status.ok { color: #8ee08e; }
+.status.bad { color: #ff8b8b; }
+.status.pending { color: var(--muted); }
+
+.setup-actions {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.setup-actions button { padding: 10px 16px; }
+.log {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--muted);
+  max-height: 240px;
+  overflow: auto;
+}
+
+/* Chat. */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+.bubble {
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bubble .label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.bubble.system   { align-self: flex-start; background: var(--announcement-bg); border-color: var(--announcement); color: var(--announcement); }
+.bubble.public   { align-self: flex-end;   background: var(--public-bg);       border-color: var(--public);       color: var(--public); }
+.bubble.private  { align-self: flex-end;   background: var(--private-bg);      border-color: var(--private);      color: var(--private); }
+.bubble.gm-reveal { align-self: flex-start; background: var(--private-bg); border-color: var(--private); color: var(--private); }
+
+/* Private bubbles collapse by default. */
+.bubble.private.collapsed .body { display: none; }
+.bubble.private .label { cursor: pointer; }
+.bubble.private .label::after { content: " ▶"; }
+.bubble.private:not(.collapsed) .label::after { content: " ▼"; }
+
+/* GM panel (collapsible). */
+.gm-panel {
+  grid-area: gm;
+  width: 280px;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gm-panel.hidden { display: none; }
+.gm-panel h2 { font-size: 14px; margin: 0 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.gm-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+/* ============ setup screen ============ */
+
+.setup-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+.setup-card h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+.setup-card > p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 13px;
+}
+.setup-card code {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+}
+
+/* Field rows (label + input). Comfortable spacing, taller inputs. */
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.field-row:last-child { margin-bottom: 0; }
+.field-row label {
+  min-width: 130px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.field-row input[type="text"],
+.field-row input[type="password"],
+.field-row input[type="number"] {
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color 0.15s;
+}
+.field-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Checkbox rows (game settings). */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.check-row:last-of-type { border-bottom: 0; margin-bottom: 8px; }
+.check-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ============ slot editor (4 player cards) ============ */
+
+#slot-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+.slot-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;  /* spacing managed by section margins */
+}
+
+/* Slot header (number badge + nickname). */
+.slot-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.slot-player-label {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #0b1320;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+.slot-nick-inline-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-left: 4px;
+}
+.slot-nickname {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+}
+.slot-nickname:focus { outline: none; border-color: var(--accent); }
+
+/* Within a slot, field-rows are tighter than top-level. */
+.slot-card .field-row {
+  margin-bottom: 10px;
+}
+.slot-card .field-row label { min-width: 90px; font-size: 11px; }
+
+/* Per-slot fetch button + status. */
+.slot-fetch-btn {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 500;
+  font-size: 12px;
+  padding: 6px 14px;
+}
+.slot-fetch-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.slot-fetch-status { font-size: 12px; color: var(--muted); }
+.slot-fetch-status.bad { color: #ff8b8b; }
+
+/* Model dropdown gets its own breathing space. */
+.slot-model {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  margin: 6px 0 14px;
+  cursor: pointer;
+}
+.slot-model:focus { outline: none; border-color: var(--accent); }
+
+/* Advanced details section. */
+.slot-advanced {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.slot-advanced summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  list-style: none;
+}
+.slot-advanced summary::before {
+  content: "▶ ";
+  font-size: 9px;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+.slot-advanced[open] summary::before {
+  transform: rotate(90deg);
+}
+.slot-advanced > .field-row {
+  margin-top: 8px;
+}
+.slot-advanced .field-row label { min-width: 110px; }
+
+/* Validation status pill at bottom of each slot card. */
+.slot-card .status {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+
+/* Resume section. */
+.resume-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.resume-row + .resume-row { border-top: 1px solid var(--border); }
+.resume-id { font-family: monospace; font-size: 13px; }
+
+/* The validate-output JSON dump. */
+#validate-output {
+  margin-top: 16px;
+  font-size: 11px;
+}

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+config.yaml
+games/
+.DS_Store
+.idea/
+.vscode/
+gameskills/

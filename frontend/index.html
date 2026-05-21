@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>One Night Werewolf -- Runner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="title">One Night Werewolf <span class="muted">runner</span></div>
+  <div class="phase-pill" id="phase-pill">setup</div>
+  <button id="gm-toggle" class="ghost" type="button">GM controls</button>
+</header>
+
+<main>
+  <section id="setup-screen" class="screen visible">
+    <h1>Setup</h1>
+
+    <div id="resume-section-host"></div>
+
+    <div class="setup-card">
+      <h2>Players</h2>
+      <p class="muted">Four slots. Pick a model for each and give it a nickname (alphanumeric, up to 12 chars, unique). The same model can fill multiple slots.</p>
+      <div id="slot-editor"></div>
+    </div>
+
+    <div class="setup-card">
+      <h2>Game settings</h2>
+      <label class="check-row"><input type="checkbox" id="cfg-pause-phase" /> Pause after every phase (paranoid mode)</label>
+      <label class="check-row"><input type="checkbox" id="cfg-pause-gameskill" /> Pause before gameskill commit (research mode)</label>
+      <label class="check-row"><input type="checkbox" id="cfg-auto-commit" checked /> Auto-commit gameskill updates</label>
+      <div class="field-row">
+        <label for="cfg-seed">Random seed (blank = fresh)</label>
+        <input id="cfg-seed" type="text" placeholder="(blank)" />
+      </div>
+    </div>
+
+    <div class="setup-actions">
+      <button id="btn-save-validate">Save &amp; Validate</button>
+      <button id="btn-start" disabled>Start game</button>
+    </div>
+    <pre id="validate-output" class="log"></pre>
+  </section>
+
+  <section id="game-screen" class="screen">
+    <div id="chat" class="chat"></div>
+  </section>
+</main>
+
+<aside id="gm-panel" class="gm-panel hidden">
+  <h2>GM controls</h2>
+  <div class="gm-row">
+    <span class="muted">Phase</span>
+    <span id="gm-phase">--</span>
+  </div>
+  <div class="gm-row">
+    <span class="muted">Paused</span>
+    <span id="gm-paused">no</span>
+  </div>
+  <button id="btn-advance" type="button" disabled>Advance</button>
+  <details>
+    <summary>Cheat sheet (current card holdings)</summary>
+    <pre id="cheat-sheet" class="log">--</pre>
+  </details>
+</aside>
+
+<script src="/static/app.js" type="module"></script>
+</body>
+</html>

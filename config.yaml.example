@@ -1,0 +1,52 @@
+# One Night Werewolf runner — config template.
+# Copy to config.yaml and edit. Four slots required.
+
+slots:
+  - nickname: Owen        # alphanumeric, <= 12 chars, unique across slots
+    endpoint: http://localhost:8000/v1   # StoryUI default (single proxy, routes by `model`)
+    model: qwen3:8b
+    api_key: null         # optional; sent as Authorization: Bearer
+    timeout_seconds: 180
+    inactivity_timeout_seconds: 45
+    temperature: 0.7
+    # system_prompt: |    # optional override; defaults to built-in template
+    #   ...
+
+  - nickname: Gemma
+    endpoint: http://localhost:8000/v1
+    model: gemma3:9b
+    timeout_seconds: 180
+    inactivity_timeout_seconds: 45
+    temperature: 0.7
+
+  - nickname: Rowen
+    endpoint: http://localhost:8000/v1
+    model: mistral-small:24b
+    timeout_seconds: 180
+    inactivity_timeout_seconds: 45
+    temperature: 0.7
+
+  - nickname: Jemma
+    endpoint: http://localhost:8000/v1
+    model: llama3.1:8b
+    timeout_seconds: 180
+    inactivity_timeout_seconds: 45
+    temperature: 0.7
+
+game:
+  hot_memory_last_k_turns: 20
+
+  # Pause points. [] = fully autonomous (casual mode).
+  # Research-mode example: ["gameskill_commit"]
+  # Paranoid: ["phase_transition", "gameskill_commit"]
+  pause_points: []
+
+  # Casual default: gameskill updates commit automatically after each game.
+  # Research mode: false, GM reviews diffs before commit.
+  gameskill_auto_commit: true
+
+  # null = generate fresh; set integer for reproducible runs.
+  random_seed: null
+
+  # How many appended Lessons-from-Game-N sections trigger a compression pass.
+  gameskill_compress_after_games: 5
